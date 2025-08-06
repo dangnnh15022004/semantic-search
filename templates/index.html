@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Semantic Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #d63384; }
+        input, button { padding: 8px; margin: 5px; width: 300px; }
+        form { margin-bottom: 30px; }
+        .section { border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Semantic Search Demo</h1>
+
+    <div class="section">
+        <h3>➕ Add Product</h3>
+        <form action="/add-product" method="post">
+            <input name="productDisplayName" placeholder="Name" required><br>
+            <input name="gender" placeholder="Gender" required><br>
+            <input name="articleType" placeholder="Type" required><br>
+            <input name="baseColour" placeholder="Colour" required><br>
+            <input name="season" placeholder="Season" required><br>
+            <input name="usage" placeholder="Usage" required><br>
+            <button type="submit">Add Product</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>🔍 Semantic Search</h3>
+        <form action="/semantic-search" method="post">
+            <input name="query" placeholder="Search description..." required>
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>🧪 Hybrid Search</h3>
+        <form action="/hybrid-search" method="post">
+            <input name="query" placeholder="Search description..." required>
+            <button type="submit">Hybrid Search</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>🖼️ CLIP Search (Text and/or Image)</h3>
+        <form action="/clip-search" method="post" enctype="multipart/form-data">
+            <input name="query" placeholder="Enter description (optional)"><br>
+            <input type="file" name="image" accept="image/*"><br>
+            <button type="submit">Search with CLIP</button>
+        </form>
+        <p><small>💡 Bạn có thể nhập mô tả, chọn ảnh, hoặc cả hai.</small></p>
+    </div>
+
+    {% if message %}
+        <p><strong>{{ message }}</strong></p>
+    {% endif %}
+
+    {% if results %}
+        <div class="section">
+            <h4>🔍 Semantic Results:</h4>
+            <ul>
+                {% for r in results %}
+                    <li>{{ r['productDisplayName'] }} (Score: {{ "%.2f"|format(r['score']) }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if hybrid_results %}
+        <div class="section">
+            <h4>🧪 Hybrid Results for: '{{ hybrid_query }}'</h4>
+            <ul>
+                {% for r in hybrid_results %}
+                    <li>{{ r['productDisplayName'] }} (Score: {{ "%.2f"|format(r['score']) }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if clip_results %}
+        <div class="section">
+            <h4>🖼️ CLIP Results for: '{{ clip_query }}'</h4>
+            <ul>
+                {% for r in clip_results %}
+                    <li>{{ r['productDisplayName'] }} (Score: {{ "%.2f"|format(r['score']) }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</body>
+</html>

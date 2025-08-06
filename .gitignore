@@ -1,0 +1,25 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 96fca1fbc9f84820337754c60d4a9b865a9dc6e9
+# Ignore virtual environment and cache
+.venv*/
+__pycache__/
+*.pyc
+.DS_Store
+
+<<<<<<< HEAD
+=======
+# .gitignore
+venv/
+__pycache__/
+*.pyc
+*.zip
+*.tar.gz
+*.egg-info/
+temp/
+.env
+.DS_Store
+>>>>>>> 55910b0 (Initial commit: Clean Semantic + Hybrid + CLIP search app)
+=======
+>>>>>>> 96fca1fbc9f84820337754c60d4a9b865a9dc6e9

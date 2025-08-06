@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kết quả tìm kiếm</title>
+</head>
+<body>
+    <h1>Kết quả cho: "{{ query }}"</h1>
+
+    <ul>
+        {% for item in results %}
+            <li>{{ loop.index }}. {{ item['name'] }} (score: {{ item['score'] }})</li>
+        {% endfor %}
+    </ul>
+
+    <a href="/">⬅️ Quay lại</a>
+</body>
+</html>
