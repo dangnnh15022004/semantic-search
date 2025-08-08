@@ -1,41 +1,82 @@
-from search_utils.vector_search import search_by_text
-from search_utils.keyword_search import keyword_search
+from PIL import Image
+import os
+from .clip_search import generate_combined_embedding
+from .keyword_search import keyword_search
+from pinecone import Pinecone
+from config import PINECONE_API_KEY
 
+# Pinecone setup
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index("semantic-clip")
 
-def hybrid_search(query, top_k=5):
-    # Semantic search: dùng embedding để tìm các vector tương tự
-    semantic_results = search_by_text(query, top_k=top_k * 2)
+def hybrid_search(query, top_k=5, filters=None, image_path=None):
+    filters = filters or {}
 
-    # Keyword search: dùng full-text search trong PostgreSQL
-    keyword_results = keyword_search(query, top_k=top_k * 2)
+    # 1. Prepare image (if exists)
+    image = None
+    if image_path and os.path.exists(image_path):
+        try:
+            image = Image.open(image_path).convert("RGB")
+        except Exception as e:
+            print(f"⚠️ Image load error: {e}")
 
+    # 2. Generate CLIP embedding and query Pinecone
+    embedding = generate_combined_embedding(text=query, image=image)
+    clip_results = index.query(vector=embedding.tolist(), top_k=top_k * 2, include_metadata=True)
+
+    # 3. Filter CLIP matches
+    def match_filter(metadata, filters):
+        for key, value in filters.items():
+            if value and str(metadata.get(key, "")).lower() != str(value).lower():
+                return False
+        return True
+
+    filtered_clip = []
+    for match in clip_results.matches:
+        metadata = match.metadata or {}
+        if match_filter(metadata, filters):
+            filtered_clip.append({
+                "productDisplayName": metadata.get("productDisplayName", ""),
+                "gender": metadata.get("gender", ""),
+                "articleType": metadata.get("articleType", ""),
+                "baseColour": metadata.get("baseColour") or metadata.get("colour", ""),
+                "season": metadata.get("season", ""),
+                "usage": metadata.get("usage", ""),
+                "score": match.score,
+                "pinecone_id": match.id,
+                "semantic_score": match.score,
+                "keyword_score": 0.0
+            })
+
+    # 4. Keyword search from PostgreSQL
+    keyword_results = keyword_search(query, top_k=top_k * 2, filters=filters)
+
+    # 5. Merge results (by pinecone_id or product name as fallback)
     combined = {}
 
-    # Lưu kết quả semantic search vào dict
-    for item in semantic_results:
-        name = item["productDisplayName"]
-        combined[name] = {
-            "productDisplayName": name,
-            "semantic_score": item.get("score", 0.0),
-            "keyword_score": 0.0
-        }
+    for item in filtered_clip:
+        key = item.get("pinecone_id") or item["productDisplayName"]
+        combined[key] = item
 
-    # Gộp kết quả keyword search
     for item in keyword_results:
-        name = item["product_display_name"]
-        if name in combined:
-            combined[name]["keyword_score"] = 1.0  # Có match keyword
+        key = item.get("pinecone_id") or item["productDisplayName"]
+        if key in combined:
+            combined[key]["keyword_score"] = 1.0
+
+            # 🔁 Ensure missing metadata fields from keyword are merged in
+            for field in ["gender", "articleType", "baseColour", "season", "usage"]:
+                if not combined[key].get(field):
+                    combined[key][field] = item.get(field, "")
         else:
-            combined[name] = {
-                "productDisplayName": name,
-                "semantic_score": 0.0,
-                "keyword_score": 1.0
-            }
+            item["semantic_score"] = 0.0
+            item["keyword_score"] = 1.0
+            item["score"] = 0.3
+            combined[key] = item
 
-    # Cộng điểm và thêm trường 'score'
+    # 6. Final score computation
     for item in combined.values():
-        item["score"] = 0.7 * item["semantic_score"] + 0.3 * item["keyword_score"]
+        item["score"] = 0.7 * item.get("semantic_score", 0.0) + 0.3 * item.get("keyword_score", 0.0)
 
-    # Sắp xếp theo score tổng
-    final_results = sorted(combined.values(), key=lambda x: x["score"], reverse=True)
-
+    # 7. Return top-k sorted by score
+    sorted_results = sorted(combined.values(), key=lambda x: x["score"], reverse=True)
+    return sorted_results[:top_k]

@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 96fca1fbc9f84820337754c60d4a9b865a9dc6e9
 from pinecone import Pinecone
 from config import PINECONE_API_KEY, PINECONE_INDEX
 
@@ -18,9 +14,4 @@ if vector:
     print("✅ Found in Pinecone:", vector.metadata)
 else:
     print("❌ Not found in Pinecone")
-<<<<<<< HEAD
-=======
-check.py
->>>>>>> 55910b0 (Initial commit: Clean Semantic + Hybrid + CLIP search app)
-=======
->>>>>>> 96fca1fbc9f84820337754c60d4a9b865a9dc6e9
+

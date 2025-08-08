@@ -17,6 +17,12 @@ def search_by_text(query, top_k=5):
         metadata = match.get("metadata", {})
         simplified_results.append({
             "productDisplayName": metadata.get("productDisplayName", "Unknown"),
+            "gender": metadata.get("gender", ""),
+            "articleType": metadata.get("articleType") or metadata.get("category", ""),
+            "baseColour": metadata.get("baseColour") or metadata.get("colour", ""),
+            "season": metadata.get("season", ""),
+            "usage": metadata.get("usage", ""),
+            "pinecone_id": match.get("id"),
             "score": match.get("score", 0.0)
         })
 

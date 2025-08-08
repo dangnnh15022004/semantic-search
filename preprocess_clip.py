@@ -34,7 +34,8 @@ clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 def load_image(image_path):
     try:
         return Image.open(image_path).convert("RGB")
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ Error loading image at {image_path}: {e}")
         return None
 
 # === Embedding and upload ===
@@ -50,7 +51,7 @@ for i in tqdm(range(0, len(df), batch_size), desc="Uploading"):
         image_path = os.path.join(image_folder, f"{product_id}.jpg")
         image = load_image(image_path)
         if image is None:
-            continue
+            continue  # Skip if image loading fails
 
         # Process inputs separately
         inputs = clip_processor(text=[row["text"]], images=image, return_tensors="pt", padding=True)
@@ -88,8 +89,16 @@ for i in tqdm(range(0, len(df), batch_size), desc="Uploading"):
 
         vectors.append((product_id, combined_emb.tolist(), metadata))
 
+    # Ensure we're not uploading empty batches
     if vectors:
-        index.upsert(vectors=vectors)
-        vectors = []
+        try:
+            index.upsert(vectors=vectors)
+            print(f"Successfully uploaded {len(vectors)} vectors.")
+        except Exception as e:
+            print(f"Error uploading vectors: {e}")
+        vectors = []  # Reset after upload
+    else:
+        print(f"Skipping empty batch at index {i}")
 
+# Final message
 print("✅ Done uploading CLIP combined embeddings to Pinecone.")
